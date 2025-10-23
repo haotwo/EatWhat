@@ -1,0 +1,83 @@
+from typing import Literal
+
+from  pydantic import computed_field
+from pydantic_settings import BaseSettings,SettingsConfigDict
+
+class Settings(BaseSettings):
+    """应用配置(支持PostgreSQL和SQLite,含连接池设置)"""
+    app_name: str ="Eat What"
+    debug: bool = False
+
+    # 数据库类型
+    db_type: Literal["postgres","sqlite"] = "sqlite"
+
+    # PostgreSQL 配置
+    db_host: str = "localhost"
+    db_port: int = 5432
+    db_user: str = "postgres"
+    db_password: str = "postgres"
+    db_name: str = "eatwhat"
+
+    # 连接池配置（仅PostgreSQL有效）
+    # 必选参数
+    pool_size: int = 20  # 连接池基础大小
+    max_overflow: int = 10  # 超过pool_size的最大连接数
+    pool_timeout: int = 30  # 获取连接超时时间(秒)
+    pool_pre_ping: bool = True  # 取连接前是否检查可用性
+
+    # 可选调优参数
+    pool_recycle: int = 3600  # 连接最大存活时间(秒)
+    pool_use_lifo: bool = False  # 连接池取连接顺序
+    echo: bool = False  # 是否打印SQL 开发可打开 生产关闭
+
+    # SQLite配置
+    sqlite_db_path: str = "./data/eatwhat.sqlite3"
+
+    @computed_field
+    @property
+    def database_url(self) -> str:
+        if self.db_type =="postgres":
+            return (
+                f"postgresql+asyncpg://{self.db_user}:{self.db_password}"
+                f"@{self.db_host}:{self.db_port}/{self.db_name}"
+            )
+        elif self.db_type =="sqlite":
+            return f"sqlite+aiosqlite:///{self.sqlite_db_path}"
+        else:
+            raise ValueError(f"Unsupported DB_TYPE:{self.db_type}")
+        
+    computed_field
+    @property
+    def engine_options(self) -> dict:
+        """统一封装 engine options,供 create_async_engine 使用"""
+        if self.db_type == "postgres":
+            return {
+                "pool_size": self.pool_size,
+                "max_overflow": self.max_overflow,
+                "pool_timeout": self.pool_timeout,
+                "pool_recycle": self.pool_recycle,
+                "pool_use_lifo": self.pool_use_lifo,
+                "echo": self.echo,
+            }
+        # SQLite 不支持 pool 设置，返回最小参数
+        return {"echo": self.echo}
+
+    # JWT 配置
+    jwt_secret: str = "龘爨麤鬻籱灪蠼蠛纛齉鬲靐龗齾龕鑪鸙饢驫麣"
+
+    # Redis配置
+    redis_host: str = "127.0.0.1"
+    redis_port: int = 6379
+    auth_redis_db: int = 0
+    cache_redis_db: int = 1
+    
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        case_sensitive=False,
+        extra="ignore",  # 添加这一行，忽略.env中的额外字段
+    )
+    
+
+
+settings = Settings()
