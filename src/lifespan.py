@@ -2,13 +2,9 @@
 import time
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from datetime import datetime, timedelta, timezone
 
 from fastapi import FastAPI
 from loguru import logger
-
-# 定义北京时区常量
-BEIJING_TIMEZONE = timezone(timedelta(hours=8))
 
 
 @asynccontextmanager
