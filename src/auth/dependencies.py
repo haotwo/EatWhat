@@ -8,6 +8,8 @@ from src.core.database import get_db
 from src.auth.model import User,AccessToken
 
 
+
+# 获取用户数据库依赖
 async def get_user_db(session:AsyncSession=Depends(get_db)):
     yield SQLAlchemyUserDatabase(session,User)
 
